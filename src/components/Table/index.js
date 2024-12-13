@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import {Rnd} from "react-rnd";
 
 const data = {
     "type": "text",
@@ -116,18 +117,6 @@ export const Table = () => {
                     let currentItem = table.rows[i][j];
 
                     for (let k = 0; k < table.rows[i-1].length; k++) {
-
-                        // const getUpperItem = (elem) => {
-                        //     const ind = 1;
-                        //     const upperExample = table.rows[i-ind][j];
-                        //
-                        //
-                        //
-                        //
-                        //
-                        //     return upperExample;
-                        // }
-
                         let upperItem = table.rows.map((arr, ind) => ind < i && table.rows[ind][j]).reverse().find(item => item !== false && (item.value === currentItem.value || currentItem.value === '') && item.colSpan > 0);
                         if(upperItem) {
 
@@ -153,19 +142,37 @@ export const Table = () => {
         return data;
     }
 
+
+    const handleResize = (e, direction, ref, delta, position, id) => {
+        if(direction === 'up' || direction === 'bottom') {
+            const [tableInd, rowInd] = id.split(['-']);
+            const updatedData = [...newData ];
+            updatedData[tableInd] = {...updatedData[tableInd]};
+            updatedData[tableInd].style = [...updatedData[tableInd].style];
+            updatedData[tableInd].style[rowInd] = [...updatedData[tableInd].style[rowInd].map(obj => ({...obj, height: ref.clientHeight}))]; // Создаем копию строки
+
+            setNewData(updatedData);
+        }
+    }
+
     useEffect(() => {
-        const newTablesData = data.parts.map(table => ({
+        const newTablesData = data.parts.map(table => ({ //переделываем приходящие данные в удобные нам
             type: table.type,
             id: table.id,
             rows: [
                 table.data_args.map(item => ({ value: item, colSpan: 1, rowSpan: 1 })),
                 ...table.data_set.map(item => item.map(value => typeof value === 'string' ? ({value: value, colSpan: 1, rowSpan: 1}) : ({value: value.arg_val, colSpan: 1, rowSpan: 1})))
-            ]
+            ],
+            style: [
+                table.data_args.map((item) => (table.style ? {...item.style} : {})),
+                ...table.data_set.map(item => item.map(value => typeof value === 'string' ? {} : {}))
+            ],
         }));
 
-        const newTablesData1 = newTablesData.map(table => ({...table, rows: table.rows.map(row => modifiedRows(row))}));
+        const newTablesData1 = newTablesData.map(table => ({...table, rows: table.rows.map(row => modifiedRows(row))})); //соединяем значения по строкам
+        const newTablesData2 = modifiedColumns(newTablesData1);  //соединяем значения по колонкам и сетим
 
-        setNewData(modifiedColumns(newTablesData1));
+        setNewData(newTablesData2);
     }, [mode]);
 
     return (
@@ -181,11 +188,27 @@ export const Table = () => {
                 <table key={index} className="data-table">
                     <tbody>
                     {table.rows.map((row, rowIndex) => (
-                        <tr key={rowIndex}>
+                        <tr id={rowIndex} key={rowIndex} style={{ height: newData[index]?.style[rowIndex][0]?.height ? `${newData[index].style[rowIndex][0].height}px` : 'auto'}}>
                             {row.map((cell, cellIndex) => (
-                                <td key={cellIndex} colSpan={cell.colSpan} rowSpan={cell.rowSpan} style={{ display: (cell.rowSpan === 0 || cell.colSpan === 0) ? 'none' : 'revert'}}>
-                                    {cell.value}
-                                </td>
+                                    <td
+
+                                        key={`${index}-${rowIndex}-${cellIndex}`}
+                                        id={`${index}-${rowIndex}-${cellIndex}`}
+                                        colSpan={cell.colSpan}
+                                        rowSpan={cell.rowSpan}
+                                        className="cell"
+                                        style={{
+                                            display: (cell.rowSpan === 0 || cell.colSpan === 0) ? 'none' : 'revert',
+                                            height: newData[index]?.style[rowIndex][0]?.height ? `${newData[index].style[rowIndex][0].height}px`  : '40px',
+                                    }}>
+                                        <Rnd
+                                            className="cellContainer"
+                                            disableDragging={true}
+                                            onResize={(e, direction, ref, delta, position) => handleResize(e, direction, ref, delta, position, `${index}-${rowIndex}-${cellIndex}`)}
+                                        >
+                                           <p>{cell.value}</p>
+                                        </Rnd>
+                                    </td>
                             ))}
                         </tr>
                     ))}
