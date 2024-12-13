@@ -25,7 +25,7 @@ const data = {
             ],
             "data_set": [
                 ["", "0.20..0.34", "0.35..0.44", "0.45..0.54", "0.55..0.64", "0.65..0.74",
-                    "0.75..0.84", "0.85..0.94", "0.95..1"],
+                    "0.75..0.84", "abc", "0.95..1"],
                 ["0..0.020",
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "7.0..9.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "7.0..9.0" }, //7.5..9.5
@@ -33,7 +33,7 @@ const data = {
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "9.5..11.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "10.5..12.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "11.5..13.5" },
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "0.85..0.94" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "abc" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "13.5..15.5" }
                 ],
                 ["0.021..0.025",
@@ -43,7 +43,7 @@ const data = {
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "9.0..11.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "10.0..12.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "11.0..13.0" },
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "0.85..0.94" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "abc" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "13.0..15.0" }
                 ],
                 ["0.026..0.030",
@@ -53,7 +53,7 @@ const data = {
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "8.5..10.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "9.5..11.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "10.5..12.5" },
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "11.5..13.5" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "abc" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "12.5..14.5" }
                 ],
                 ["0.031..0.035",
@@ -63,7 +63,7 @@ const data = {
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "8.0..10.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "9.0..11.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "10.0..12.0" },
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "11.0..13.0" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "abc" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "12.0..14.0" }
                 ]
             ],
@@ -114,21 +114,42 @@ export const Table = () => {
             for (let i = 1; i < table.rows.length; i++) { // Начинаем с второго подмассива
                 for (let j = 0; j < table.rows[i].length; j++) {
                     let currentItem = table.rows[i][j];
-                    let upperItem = table.rows.map((arr, ind) => ind < i && table.rows[ind][j]).reverse().find(item => item !== false && (item.value === currentItem.value || currentItem.value === '') && item.colSpan > 0);
-                    if(upperItem) {
-                        upperItem.rowSpan = upperItem.rowSpan + 1;
-                        table.rows[i][j] = {
-                            value: table.rows[i][j].value,
-                            colSpan: 0,
-                            rowSpan: 0
+
+                    for (let k = 0; k < table.rows[i-1].length; k++) {
+
+                        // const getUpperItem = (elem) => {
+                        //     const ind = 1;
+                        //     const upperExample = table.rows[i-ind][j];
+                        //
+                        //
+                        //
+                        //
+                        //
+                        //     return upperExample;
+                        // }
+
+                        let upperItem = table.rows.map((arr, ind) => ind < i && table.rows[ind][j]).reverse().find(item => item !== false && (item.value === currentItem.value || currentItem.value === '') && item.colSpan > 0);
+                        if(upperItem) {
+
+                            if ((currentItem.value === upperItem.value || currentItem.value === '') && upperItem.colSpan === currentItem.colSpan) {
+
+
+                                upperItem.rowSpan = upperItem.rowSpan + 1;
+                                table.rows[i][j] = {
+                                    value: table.rows[i][j].value,
+                                    colSpan: 0,
+                                    rowSpan: 0
+                                }
+                                j--;
+                                break;
+                            }
                         }
-                        j--;
-                        break;
                     }
                 }
             }
         });
 
+        console.log('data', data)
         return data;
     }
 
