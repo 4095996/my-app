@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState, useEffect } from 'react';
 
 const data = {
     "type": "text",
@@ -33,21 +33,21 @@ const data = {
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "9.5..11.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "10.5..12.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "11.5..13.5" },
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "12.5..14.5" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "0.85..0.94" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "13.5..15.5" }
                 ],
                 ["0.021..0.025",
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "6.5..8.5" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "5.5..7.5" }, //6.5..8.5
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "7.0..9.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "8.0..10.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "9.0..11.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "10.0..12.0" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "11.0..13.0" },
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "12.0..14.0" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "0.85..0.94" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "13.0..15.0" }
                 ],
                 ["0.026..0.030",
-                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "6.0..8.0" },
+                    { "type": "arg", "id": "Расход_извести_т", "arg_val": "5.5..7.5" }, //6.0..8.0
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "6.5..8.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "7.5..9.5" },
                     { "type": "arg", "id": "Расход_извести_т", "arg_val": "8.5..10.5" },
@@ -75,19 +75,9 @@ const data = {
 
 export const Table = () => {
     const [mode, setMode] = useState('default');
+    const [newData, setNewData] = useState(null);
 
-    const newTableData = data.parts.map(table => ({
-            type: table.type,
-            id: table.id,
-            rows: [
-                table.data_args.map(item => ({ value: item, colSpan: 1, rowSpan: 1 })),
-                ...table.data_set.map(item => item.map(value => typeof value === 'string' ? ({value: value, colSpan: 1, rowSpan: 1}) : ({value: value.arg_val, colSpan: 1, rowSpan: 1})))
-            ]
-    }));
-
-    console.log('newTableData', newTableData);
-
-    const modifiedRowsAndColumns = (arr) => {
+    const modifiedRows = (arr) => {
         if(mode === 'default') return arr;
 
         const result = [];
@@ -96,27 +86,66 @@ export const Table = () => {
 
         for (let i = 0; i < arr.length; i++) {
             const currentValue = typeof arr[i] === 'object' ? arr[i].value : arr[i];
-
             if (currentValue === prevValue) {
                 colSpan++;
-                result[result.length - 1].colSpan = colSpan;
+                const index = result.findIndex(item => item.value === currentValue && item.colSpan > 0);
+                result[index].colSpan = colSpan;
+                result.push({
+                    value: currentValue,
+                    colSpan: 0,
+                    rowSpan: 0
+                });
             } else {
                 result.push({
                     value: currentValue,
-                    colSpan: 1
+                    colSpan: 1,
+                    rowSpan: 1
                 });
                 colSpan = 1;
             }
-
             prevValue = currentValue;
         }
-
-        console.log('result', result);
-
-
-
         return result;
+    };
+
+    const modifiedColumns = (data) => {
+        if(mode === 'default') return data;
+        data.forEach(table => {
+            for (let i = 1; i < table.rows.length; i++) { // Начинаем с второго подмассива
+                for (let j = 0; j < table.rows[i].length; j++) {
+                    let currentItem = table.rows[i][j];
+                    let upperItem = table.rows.map((arr, ind) => ind < i && table.rows[ind][j]).reverse().find(item => item !== false && (item.value === currentItem.value || currentItem.value === '') && item.colSpan > 0);
+                    if(upperItem) {
+                        upperItem.rowSpan = upperItem.rowSpan + 1;
+                        table.rows[i][j] = {
+                            value: table.rows[i][j].value,
+                            colSpan: 0,
+                            rowSpan: 0
+                        }
+                        j--;
+                        break;
+                    }
+                }
+            }
+        });
+
+        return data;
     }
+
+    useEffect(() => {
+        const newTablesData = data.parts.map(table => ({
+            type: table.type,
+            id: table.id,
+            rows: [
+                table.data_args.map(item => ({ value: item, colSpan: 1, rowSpan: 1 })),
+                ...table.data_set.map(item => item.map(value => typeof value === 'string' ? ({value: value, colSpan: 1, rowSpan: 1}) : ({value: value.arg_val, colSpan: 1, rowSpan: 1})))
+            ]
+        }));
+
+        const newTablesData1 = newTablesData.map(table => ({...table, rows: table.rows.map(row => modifiedRows(row))}));
+
+        setNewData(modifiedColumns(newTablesData1));
+    }, [mode]);
 
     return (
         <div>
@@ -127,20 +156,13 @@ export const Table = () => {
                     mode === 'default' ? "Модифицированный режим" : "Стандартный режим"
                 }
             </button>
-            {newTableData.map((table, index) => (
+            {newData?.map((table, index) => (
                 <table key={index} className="data-table">
-                    {/*<thead>*/}
-                    {/*<tr>*/}
-                    {/*    {modifiedRowsAndColumns(part.data_args).map((item, idx) => (*/}
-                    {/*        <th key={idx} colSpan={item.colSpan}>{item.value}</th>*/}
-                    {/*    ))}*/}
-                    {/*</tr>*/}
-                    {/*</thead>*/}
                     <tbody>
                     {table.rows.map((row, rowIndex) => (
                         <tr key={rowIndex}>
-                            {modifiedRowsAndColumns(row).map((cell, cellIndex) => (
-                                <td key={cellIndex} colSpan={cell.colSpan}>
+                            {row.map((cell, cellIndex) => (
+                                <td key={cellIndex} colSpan={cell.colSpan} rowSpan={cell.rowSpan} style={{ display: (cell.rowSpan === 0 || cell.colSpan === 0) ? 'none' : 'revert'}}>
                                     {cell.value}
                                 </td>
                             ))}
